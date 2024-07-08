@@ -24,7 +24,7 @@ try {
 }
 
 # URL to the latest version of the script
-$scriptUrl = "https://raw.githubusercontent.com/CRYPTXMNESIA/BirdOS/main/updated-script.ps1"
+$scriptUrl = "https://raw.githubusercontent.com/CRYPTXMNESIA/BirdOS/main/p-i.ps1"
 
 # Path to download the latest script
 $scriptPath = "$env:USERPROFILE\latest-script.ps1"
