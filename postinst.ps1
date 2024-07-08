@@ -12,3 +12,5 @@ Invoke-WebRequest -Uri $scriptUrl -OutFile $scriptPath -ErrorAction Stop
 
 # Clean up the downloaded script after execution
 Remove-Item -Path $scriptPath -Force
+
+Read-Host "Press any key to exit..."
