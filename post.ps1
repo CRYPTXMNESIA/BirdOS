@@ -1,9 +1,27 @@
+# Function to check if running as administrator
+function Test-IsAdmin {
+    $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# Function to prompt for UAC if not running as administrator
+function Prompt-UAC {
+    if (-not (Test-IsAdmin)) {
+        Start-Process powershell.exe "-File `"$PSCommandPath`"" -Verb RunAs
+        exit
+    }
+}
+
+Prompt-UAC
+
 # Define error handling function
 function Handle-Error {
     param(
         [string]$ErrorMessage
     )
     Write-Host $ErrorMessage -ForegroundColor Red
+    Read-Host "Press any key to exit..."
+    Remove-Item -Path $PSCommandPath -Force
     exit 1
 }
 
@@ -58,3 +76,5 @@ try {
 }
 
 Write-Host "All tasks completed successfully." -ForegroundColor Blue
+Read-Host "Press any key to exit..."
+Remove-Item -Path $PSCommandPath -Force
