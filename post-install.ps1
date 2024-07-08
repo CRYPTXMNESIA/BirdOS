@@ -27,8 +27,8 @@ function Handle-Error {
 
 # Set Wallpaper
 try {
-    $wallpaperUrl = "https://github.com/CRYPTXMNESIA/BirdOS/w.png"
-    $lockscreenUrl = "https://github.com/CRYPTXMNESIA/BirdOS/l.png"
+    $wallpaperUrl = "https://raw.githubusercontent.com/CRYPTXMNESIA/BirdOS/main/w.png"
+    $lockscreenUrl = "https://raw.githubusercontent.com/CRYPTXMNESIA/BirdOS/main/l.png"
     $wallpaperPath = "$env:USERPROFILE\wallpaper.png"
     $lockscreenPath = "$env:USERPROFILE\lockscreen.png"
 
