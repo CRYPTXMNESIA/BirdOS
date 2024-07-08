@@ -50,10 +50,12 @@ public static extern int SystemParametersInfo(int uAction, int uParam, string lp
     Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name Wallpaper -Value $wallpaperPath
     RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
 
-    # Set lock screen wallpaper
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v RotatingLockScreenOverlayEnabled /t REG_DWORD /d 0 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager" /v RotatingLockScreenEnabled /t REG_DWORD /d 0 /f
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Lock Screen" /v Creative /t REG_SZ /d $lockscreenPath /f
+    # Set lock screen wallpaper using registry
+    $regKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    if (!(Test-Path -Path $regKey)) {
+        New-Item -Path $regKey -Force
+    }
+    Set-ItemProperty -Path $regKey -Name LockScreenImage -Value $lockscreenPath -Force
 } catch {
     Handle-Error "Failed to set wallpaper or lock screen wallpaper: $_"
 }
@@ -63,6 +65,21 @@ try {
     Get-AppxPackage -Name Microsoft.WindowsStore | Remove-AppxPackage -ErrorAction Stop
 } catch {
     Handle-Error "Failed to uninstall Microsoft Store: $_"
+}
+
+# Remove OneDrive
+try {
+    $OneDriveSetup = "$env:SystemRoot\SysWOW64\OneDriveSetup.exe"
+    Start-Process -FilePath $OneDriveSetup -ArgumentList "/uninstall" -NoNewWindow -Wait -ErrorAction Stop
+    Remove-Item -Path "$env:USERPROFILE\OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:LOCALAPPDATA\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:PROGRAMDATA\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:ProgramFiles (x86)\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:ProgramFiles\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "HKCU:\Software\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
+} catch {
+    Handle-Error "Failed to uninstall OneDrive: $_"
 }
 
 # Disable sending samples to Microsoft in Windows Defender
