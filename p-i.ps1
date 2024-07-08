@@ -60,6 +60,28 @@ public static extern int SystemParametersInfo(int uAction, int uParam, string lp
     Handle-Error "Failed to set wallpaper or lock screen wallpaper: $_"
 }
 
+# Remove Microsoft Store
+try {
+    Get-AppxPackage -Name Microsoft.WindowsStore | Remove-AppxPackage -ErrorAction Stop
+} catch {
+    Handle-Error "Failed to uninstall Microsoft Store: $_"
+}
+
+# Remove OneDrive
+try {
+    $OneDriveSetup = "$env:SystemRoot\SysWOW64\OneDriveSetup.exe"
+    Start-Process -FilePath $OneDriveSetup -ArgumentList "/uninstall" -NoNewWindow -Wait -ErrorAction Stop
+    Remove-Item -Path "$env:USERPROFILE\OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:LOCALAPPDATA\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:PROGRAMDATA\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:ProgramFiles (x86)\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "$env:ProgramFiles\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "HKCU:\Software\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
+    Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
+} catch {
+    Handle-Error "Failed to uninstall OneDrive: $_"
+}
+
 # Disable sending samples to Microsoft in Windows Defender
 try {
     Set-MpPreference -SubmitSamplesConsent 2 -ErrorAction Stop
