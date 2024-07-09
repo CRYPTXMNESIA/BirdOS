@@ -14,14 +14,12 @@ function Prompt-UAC {
 
 Prompt-UAC
 
-# Define error handling function
-function Handle-Error {
+# Define error logging function
+function Log-Error {
     param(
         [string]$ErrorMessage
     )
-    Add-Type -AssemblyName PresentationFramework
-    [System.Windows.MessageBox]::Show($ErrorMessage, "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
-    exit 1
+    Add-Content -Path "$env:temp\BirdOS_PostInstall_Errors.log" -Value $ErrorMessage
 }
 
 # Set Wallpaper
@@ -45,20 +43,20 @@ public static extern int SystemParametersInfo(int uAction, int uParam, string lp
     RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
 
     # Set lock screen wallpaper using registry
-    $regKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\Personalization'
+    $regKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization'
     if (!(Test-Path -Path $regKey)) {
         New-Item -Path $regKey -Force
     }
     Set-ItemProperty -Path $regKey -Name LockScreenImage -Value $lockscreenPath -Force
 } catch {
-    Handle-Error "Failed to set wallpaper or lock screen wallpaper: $_"
+    Log-Error "Failed to set wallpaper or lock screen wallpaper: $_"
 }
 
 # Disable sending samples to Microsoft in Windows Defender
 try {
     Set-MpPreference -SubmitSamplesConsent 2 -ErrorAction Stop
 } catch {
-    Handle-Error "Failed to disable sending samples to Microsoft in Defender: $_"
+    Log-Error "Failed to disable sending samples to Microsoft in Defender: $_"
 }
 
 # Set system to dark mode
@@ -66,7 +64,7 @@ try {
     New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -PropertyType DWord -Value 0 -Force -ErrorAction Stop
     New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -PropertyType DWord -Value 0 -Force -ErrorAction Stop
 } catch {
-    Handle-Error "Failed to set system to dark mode: $_"
+    Log-Error "Failed to set system to dark mode: $_"
 }
 
 # Create and run batch script to fix Windows search
@@ -107,14 +105,31 @@ exit
     Start-Process -FilePath $batchScriptPath -Wait
     Remove-Item -Path $batchScriptPath -Force
 } catch {
-    Handle-Error "Failed to execute batch script to fix Windows search: $_"
+    Log-Error "Failed to execute batch script to fix Windows search: $_"
+}
+
+# Download and install EverythingToolbar
+try {
+    $msiUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/EverythingToolbar.msi"
+    $msiPath = "$env:temp\EverythingToolbar.msi"
+
+    # Download the MSI installer
+    Invoke-WebRequest -Uri $msiUrl -OutFile $msiPath -ErrorAction Stop
+
+    # Install the MSI installer silently
+    Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Wait -NoNewWindow
+
+    # Remove the MSI installer after installation
+    Remove-Item -Path $msiPath -Force
+} catch {
+    Log-Error "Failed to download or install EverythingToolbar: $_"
 }
 
 # Add ctfmon.exe to startup
 try {
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
 } catch {
-    Handle-Error "Failed to add ctfmon.exe to startup: $_"
+    Log-Error "Failed to add ctfmon.exe to startup: $_"
 }
 
 # Notify completion
