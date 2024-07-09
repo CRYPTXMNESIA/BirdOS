@@ -49,7 +49,7 @@ function Delete-WebCacheFile {
             $_.Modules | Where-Object { $_.FileName -eq $filePath }
         }
     } catch {
-        Log-Error "Error finding the process locking $filePath: $_"
+        Log-Error "Error finding the process locking ${filePath}: $_"
         return
     }
 
@@ -57,7 +57,7 @@ function Delete-WebCacheFile {
     if ($lockingProcess) {
         try {
             Stop-Process -Id $lockingProcess.Id -Force
-            Write-Output "Killed process $($lockingProcess.Name) with ID $($lockingProcess.Id) that was locking $filePath"
+            Write-Output "Killed process $($lockingProcess.Name) with ID $($lockingProcess.Id) that was locking ${filePath}"
         } catch {
             Log-Error "Failed to kill process $($lockingProcess.Name) with ID $($lockingProcess.Id): $_"
             return
@@ -67,9 +67,9 @@ function Delete-WebCacheFile {
     # Attempt to delete the file
     try {
         Remove-Item -Path $filePath -Force
-        Write-Output "Deleted file $filePath"
+        Write-Output "Deleted file ${filePath}"
     } catch {
-        Log-Error "Failed to delete file $filePath: $_"
+        Log-Error "Failed to delete file ${filePath}: $_"
     }
 }
 
