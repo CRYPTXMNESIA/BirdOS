@@ -102,8 +102,8 @@ try {
     $wallpaperPath = "$env:USERPROFILE\wallpaper.png"
     $lockscreenPath = "$env:USERPROFILE\lockscreen.png"
 
-    Invoke-WebRequest -Uri $wallpaperUrl -OutFile $wallpaperPath -ErrorAction Stop
-    Invoke-WebRequest -Uri $lockscreenUrl -OutFile $lockscreenPath -ErrorAction Stop
+    Invoke-WebRequest -Uri $wallpaperUrl -OutFile $wallpaperPath
+    Invoke-WebRequest -Uri $lockscreenUrl -OutFile $lockscreenPath
 
     $code = @"
 [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -127,15 +127,15 @@ public static extern int SystemParametersInfo(int uAction, int uParam, string lp
 
 # Disable sending samples to Microsoft in Windows Defender
 try {
-    Set-MpPreference -SubmitSamplesConsent 2 -ErrorAction Stop
+    Set-MpPreference -SubmitSamplesConsent 2
 } catch {
     Log-Error "Failed to disable sending samples to Microsoft in Defender: $_"
 }
 
 # Set system to dark mode
 try {
-    New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -PropertyType DWord -Value 0 -Force -ErrorAction Stop
-    New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -PropertyType DWord -Value 0 -Force -ErrorAction Stop
+    New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -PropertyType DWord -Value 0 -Force
+    New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name SystemUsesLightTheme -PropertyType DWord -Value 0 -Force
 } catch {
     Log-Error "Failed to set system to dark mode: $_"
 }
@@ -149,7 +149,7 @@ try {
 
 # Add ctfmon.exe to startup
 try {
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force
 } catch {
     Log-Error "Failed to add ctfmon.exe to startup: $_"
 }
