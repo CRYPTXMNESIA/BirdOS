@@ -127,6 +127,13 @@ try {
     Log-Error "Failed to download or install Everything: $_"
 }
 
+# Add ctfmon.exe to startup
+try {
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
+} catch {
+    Log-Error "Failed to add ctfmon.exe to startup: $_"
+}
+
 # Download and install EverythingToolbar
 try {
     $msiUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/EverythingToolbar.msi"
@@ -140,20 +147,17 @@ try {
         # Install the MSI installer silently
         Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Wait -NoNewWindow
 
-        # Remove the MSI installer after installation
-        Remove-Item -Path $msiPath -Force
+        # Verify installation before deleting the file
+        if (Get-Process -Name EverythingToolbar -ErrorAction SilentlyContinue) {
+            Remove-Item -Path $msiPath -Force
+        } else {
+            Log-Error "EverythingToolbar installation verification failed."
+        }
     } else {
         Log-Error "The MSI file was not downloaded successfully."
     }
 } catch {
     Log-Error "Failed to download or install EverythingToolbar: $_"
-}
-
-# Add ctfmon.exe to startup
-try {
-    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
-} catch {
-    Log-Error "Failed to add ctfmon.exe to startup: $_"
 }
 
 # Notify completion
