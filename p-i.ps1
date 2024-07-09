@@ -14,19 +14,13 @@ function Prompt-UAC {
 
 Prompt-UAC
 
-# Set PowerShell background and foreground colors
-$Host.UI.RawUI.BackgroundColor = "Black"
-$Host.UI.RawUI.ForegroundColor = "White"
-Clear-Host
-
 # Define error handling function
 function Handle-Error {
     param(
         [string]$ErrorMessage
     )
-    Write-Host $ErrorMessage -ForegroundColor Red
-    Read-Host "Press any key to exit..."
-    Remove-Item -Path $PSCommandPath -Force
+    Add-Type -AssemblyName PresentationFramework
+    [System.Windows.MessageBox]::Show($ErrorMessage, "Error", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Error)
     exit 1
 }
 
@@ -60,28 +54,6 @@ public static extern int SystemParametersInfo(int uAction, int uParam, string lp
     Handle-Error "Failed to set wallpaper or lock screen wallpaper: $_"
 }
 
-# Remove Microsoft Store
-try {
-    Get-AppxPackage -Name Microsoft.WindowsStore | Remove-AppxPackage -ErrorAction Stop
-} catch {
-    Handle-Error "Failed to uninstall Microsoft Store: $_"
-}
-
-# Remove OneDrive
-try {
-    $OneDriveSetup = "$env:SystemRoot\SysWOW64\OneDriveSetup.exe"
-    Start-Process -FilePath $OneDriveSetup -ArgumentList "/uninstall" -NoNewWindow -Wait -ErrorAction Stop
-    Remove-Item -Path "$env:USERPROFILE\OneDrive" -Recurse -Force -ErrorAction Stop
-    Remove-Item -Path "$env:LOCALAPPDATA\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
-    Remove-Item -Path "$env:PROGRAMDATA\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
-    Remove-Item -Path "$env:ProgramFiles (x86)\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
-    Remove-Item -Path "$env:ProgramFiles\Microsoft OneDrive" -Recurse -Force -ErrorAction Stop
-    Remove-Item -Path "HKCU:\Software\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
-    Remove-Item -Path "HKLM:\SOFTWARE\Microsoft\OneDrive" -Recurse -Force -ErrorAction Stop
-} catch {
-    Handle-Error "Failed to uninstall OneDrive: $_"
-}
-
 # Disable sending samples to Microsoft in Windows Defender
 try {
     Set-MpPreference -SubmitSamplesConsent 2 -ErrorAction Stop
@@ -97,6 +69,8 @@ try {
     Handle-Error "Failed to set system to dark mode: $_"
 }
 
-Write-Host "All tasks completed successfully." -ForegroundColor Blue
-Read-Host "Press any key to exit..."
-Remove-Item -Path $PSCommandPath -Force
+# Notify completion
+Add-Type -AssemblyName PresentationFramework
+[System.Windows.MessageBox]::Show("BirdOS Post-Install was successful.", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
+
+exit
