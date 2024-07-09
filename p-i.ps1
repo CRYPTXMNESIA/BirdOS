@@ -130,6 +130,25 @@ try {
     Log-Error "Failed to download or install EverythingToolbar: $_"
 }
 
+# Download and install Everything
+try {
+    $exeUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/EverythingSetup.exe"
+    $exePath = "$env:temp\EverythingSetup.exe"
+
+    # Download the EXE installer
+    Invoke-WebRequest -Uri $exeUrl -OutFile $exePath -ErrorAction Stop
+
+    # Ensure the file exists before attempting installation
+    if (Test-Path -Path $exePath) {
+        # Install the EXE installer silently if possible
+        Start-Process -FilePath $exePath -ArgumentList "/S" -Wait -NoNewWindow
+    } else {
+        Log-Error "The EXE file was not downloaded successfully."
+    }
+} catch {
+    Log-Error "Failed to download or install Everything: $_"
+}
+
 # Add ctfmon.exe to startup
 try {
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
