@@ -69,6 +69,15 @@ try {
     Handle-Error "Failed to set system to dark mode: $_"
 }
 
+# Disable Bing Search and Cortana in Windows Search
+try {
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name BingSearchEnabled -Value 0 -Type DWord -Force -ErrorAction Stop
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name CortanaConsent -Value 0 -Type DWord -Force -ErrorAction Stop
+    Stop-Process -Name "SearchUI" -Force -ErrorAction Stop
+} catch {
+    Handle-Error "Failed to disable Bing Search or Cortana: $_"
+}
+
 # Notify completion
 Add-Type -AssemblyName PresentationFramework
 [System.Windows.MessageBox]::Show("BirdOS Post-Install was successful.", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
