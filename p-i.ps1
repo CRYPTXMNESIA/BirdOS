@@ -22,82 +22,7 @@ function Log-Error {
     Add-Content -Path "$env:temp\BirdOS_PostInstall_Errors.log" -Value $ErrorMessage
 }
 
-# Reset Windows Search functions from the Microsoft script
-function T-R {
-    Param([String] $n)
-    $o = Get-Item -LiteralPath $n -ErrorAction SilentlyContinue
-    return ($o -ne $null)
-}
-
-function R-R {
-    Param([String] $l)
-    $m = T-R $l
-    if ($m) {
-        Remove-Item -Path $l -Recurse -ErrorAction SilentlyContinue
-    }
-}
-
-function S-D {
-    R-R "HKLM:\SOFTWARE\Microsoft\Cortana\Testability"
-    R-R "HKLM:\SOFTWARE\Microsoft\Search\Testability"
-}
-
-function K-P {
-    Param([String] $g)
-    $h = Get-Process $g -ErrorAction SilentlyContinue
-    $i = $(get-date).AddSeconds(2)
-    $k = $(get-date)
-
-    while ((($i - $k) -gt 0) -and $h) {
-        $k = $(get-date)
-        $h = Get-Process $g -ErrorAction SilentlyContinue
-        if ($h) {
-            $h.CloseMainWindow() | Out-Null
-            Stop-Process -Id $h.Id -Force
-        }
-        $h = Get-Process $g -ErrorAction SilentlyContinue
-    }
-}
-
-function D-FF {
-    Param([string[]] $e)
-    foreach ($f in $e) {
-        if (Test-Path -Path $f) {
-            Remove-Item -Recurse -Force $f -ErrorAction SilentlyContinue
-        }
-    }
-}
-
-function D-W {
-    $d = @(
-        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\AppCache",
-        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\INetCache",
-        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\INetCookies",
-        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\INetHistory",
-        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\AppCache",
-        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\INetCache",
-        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\INetCookies",
-        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\INetHistory",
-        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\AppCache",
-        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\INetCache",
-        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\INetCookies",
-        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\INetHistory",
-        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\AppCache",
-        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\INetCache",
-        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\INetCookies",
-        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\INetHistory"
-    )
-    D-FF $d
-}
-
-function R-L {
-    Param([String] $c)
-    K-P $c 2>&1 | Out-Null
-    D-W
-    K-P $c 2>&1 | Out-Null
-    Start-Sleep -s 5
-}
-
+# Function to reset Windows Search
 function Reset-WindowsSearch {
     Write-Output "Resetting Windows Search Box"
     S-D 2>&1 | Out-Null
@@ -110,6 +35,42 @@ function Reset-WindowsSearch {
 
     R-L $a
     Write-Output "Windows Search reset completed."
+}
+
+# Function to kill the process using the file and delete the file
+function Delete-WebCacheFile {
+    param (
+        [string]$filePath
+    )
+
+    # Get the process locking the file
+    try {
+        $lockingProcess = Get-Process | Where-Object {
+            $_.Modules | Where-Object { $_.FileName -eq $filePath }
+        }
+    } catch {
+        Log-Error "Error finding the process locking $filePath: $_"
+        return
+    }
+
+    # Kill the process if found
+    if ($lockingProcess) {
+        try {
+            Stop-Process -Id $lockingProcess.Id -Force
+            Write-Output "Killed process $($lockingProcess.Name) with ID $($lockingProcess.Id) that was locking $filePath"
+        } catch {
+            Log-Error "Failed to kill process $($lockingProcess.Name) with ID $($lockingProcess.Id): $_"
+            return
+        }
+    }
+
+    # Attempt to delete the file
+    try {
+        Remove-Item -Path $filePath -Force
+        Write-Output "Deleted file $filePath"
+    } catch {
+        Log-Error "Failed to delete file $filePath: $_"
+    }
 }
 
 # Set Wallpaper
@@ -162,6 +123,14 @@ try {
     Reset-WindowsSearch
 } catch {
     Log-Error "Failed to reset Windows Search: $_"
+}
+
+# Delete WebCacheV01.dat
+try {
+    $webCacheFilePath = "C:\Users\$env:USERNAME\AppData\Local\Microsoft\Windows\WebCache\WebCacheV01.dat"
+    Delete-WebCacheFile -filePath $webCacheFilePath
+} catch {
+    Log-Error "Failed to delete WebCacheV01.dat: $_"
 }
 
 # Add ctfmon.exe to startup
