@@ -116,11 +116,16 @@ try {
     # Download the MSI installer
     Invoke-WebRequest -Uri $msiUrl -OutFile $msiPath -ErrorAction Stop
 
-    # Install the MSI installer silently
-    Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Wait -NoNewWindow
+    # Ensure the file exists before attempting installation
+    if (Test-Path -Path $msiPath) {
+        # Install the MSI installer silently
+        Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Wait -NoNewWindow
 
-    # Remove the MSI installer after installation
-    Remove-Item -Path $msiPath -Force
+        # Remove the MSI installer after installation
+        Remove-Item -Path $msiPath -Force
+    } else {
+        Log-Error "The MSI file was not downloaded successfully."
+    }
 } catch {
     Log-Error "Failed to download or install EverythingToolbar: $_"
 }
