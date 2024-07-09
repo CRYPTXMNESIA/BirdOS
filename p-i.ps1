@@ -45,8 +45,12 @@ function Get-LockingProcess {
 
     # Find the process locking the file
     try {
-        $lockingProcess = Get-Process | Where-Object {
-            $_.Modules -ErrorAction SilentlyContinue | Where-Object { $_.FileName -eq $filePath }
+        $lockingProcess = Get-Process | ForEach-Object {
+            try {
+                $_.Modules | Where-Object { $_.FileName -eq $filePath }
+            } catch {
+                $null
+            }
         }
         return $lockingProcess
     } catch {
