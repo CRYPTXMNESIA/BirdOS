@@ -71,9 +71,19 @@ try {
 
 # Disable Bing Search and Cortana in Windows Search
 try {
+    # Disable Bing Search and Cortana
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name BingSearchEnabled -Value 0 -Type DWord -Force -ErrorAction Stop
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name CortanaConsent -Value 0 -Type DWord -Force -ErrorAction Stop
-    Stop-Process -Name "SearchUI" -Force -ErrorAction Stop
+    
+    # Check if SearchUI or Search is running and stop it
+    $searchUI = Get-Process -Name "SearchUI" -ErrorAction SilentlyContinue
+    if ($searchUI) {
+        Stop-Process -Name "SearchUI" -Force -ErrorAction Stop
+    }
+    $search = Get-Process -Name "Search" -ErrorAction SilentlyContinue
+    if ($search) {
+        Stop-Process -Name "Search" -Force -ErrorAction Stop
+    }
 } catch {
     Handle-Error "Failed to disable Bing Search or Cortana: $_"
 }
