@@ -22,6 +22,96 @@ function Log-Error {
     Add-Content -Path "$env:temp\BirdOS_PostInstall_Errors.log" -Value $ErrorMessage
 }
 
+# Reset Windows Search functions from the Microsoft script
+function T-R {
+    Param([String] $n)
+    $o = Get-Item -LiteralPath $n -ErrorAction SilentlyContinue
+    return ($o -ne $null)
+}
+
+function R-R {
+    Param([String] $l)
+    $m = T-R $l
+    if ($m) {
+        Remove-Item -Path $l -Recurse -ErrorAction SilentlyContinue
+    }
+}
+
+function S-D {
+    R-R "HKLM:\SOFTWARE\Microsoft\Cortana\Testability"
+    R-R "HKLM:\SOFTWARE\Microsoft\Search\Testability"
+}
+
+function K-P {
+    Param([String] $g)
+    $h = Get-Process $g -ErrorAction SilentlyContinue
+    $i = $(get-date).AddSeconds(2)
+    $k = $(get-date)
+
+    while ((($i - $k) -gt 0) -and $h) {
+        $k = $(get-date)
+        $h = Get-Process $g -ErrorAction SilentlyContinue
+        if ($h) {
+            $h.CloseMainWindow() | Out-Null
+            Stop-Process -Id $h.Id -Force
+        }
+        $h = Get-Process $g -ErrorAction SilentlyContinue
+    }
+}
+
+function D-FF {
+    Param([string[]] $e)
+    foreach ($f in $e) {
+        if (Test-Path -Path $f) {
+            Remove-Item -Recurse -Force $f -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+function D-W {
+    $d = @(
+        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\AppCache",
+        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\INetCache",
+        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\INetCookies",
+        "$Env:localappdata\Packages\Microsoft.Cortana_8wekyb3d8bbwe\AC\INetHistory",
+        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\AppCache",
+        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\INetCache",
+        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\INetCookies",
+        "$Env:localappdata\Packages\Microsoft.Windows.Cortana_cw5n1h2txyewy\AC\INetHistory",
+        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\AppCache",
+        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\INetCache",
+        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\INetCookies",
+        "$Env:localappdata\Packages\Microsoft.Search_8wekyb3d8bbwe\AC\INetHistory",
+        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\AppCache",
+        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\INetCache",
+        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\INetCookies",
+        "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy\AC\INetHistory"
+    )
+    D-FF $d
+}
+
+function R-L {
+    Param([String] $c)
+    K-P $c 2>&1 | Out-Null
+    D-W
+    K-P $c 2>&1 | Out-Null
+    Start-Sleep -s 5
+}
+
+function Reset-WindowsSearch {
+    Write-Output "Resetting Windows Search Box"
+    S-D 2>&1 | Out-Null
+
+    $a = "searchui"
+    $b = "$Env:localappdata\Packages\Microsoft.Windows.Search_cw5n1h2txyewy"
+    if (Test-Path -Path $b) {
+        $a = "searchapp"
+    }
+
+    R-L $a
+    Write-Output "Windows Search reset completed."
+}
+
 # Set Wallpaper
 try {
     $wallpaperUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/w.png"
@@ -67,83 +157,11 @@ try {
     Log-Error "Failed to set system to dark mode: $_"
 }
 
-# Create and run batch script to fix Windows search
+# Reset Windows Search
 try {
-    $batchScriptPath = "$env:temp\fix_search.bat"
-    $batchScriptContent = @"
-:: BatchGotAdmin
-:-------------------------------------
-REM  --> Check for permissions
->nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
-
-REM --> If error flag set, we do not have admin.
-if '%errorlevel%' NEQ '0' (
-    echo Requesting administrative privileges...
-    goto UACPrompt
-) else ( goto gotAdmin )
-
-:UACPrompt
-    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
-
-    "%temp%\getadmin.vbs"
-    exit /B
-
-:gotAdmin
-    if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
-    pushd "%CD%"
-    CD /D "%~dp0"
-
-reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Search /v BingSearchEnabled /t REG_DWORD /d 0 /f
-reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Search /v CortanaConsent /t REG_DWORD /d 0 /f
-taskkill /f /im SearchUI.exe
-
-exit
-"@
-
-    Set-Content -Path $batchScriptPath -Value $batchScriptContent -Force
-    Start-Process -FilePath $batchScriptPath -Wait
-    Remove-Item -Path $batchScriptPath -Force
+    Reset-WindowsSearch
 } catch {
-    Log-Error "Failed to execute batch script to fix Windows search: $_"
-}
-
-# Download and install Everything
-try {
-    $exeUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/EverythingSetup.exe"
-    $exePath = "$env:temp\EverythingSetup.exe"
-
-    # Download the EXE installer
-    Invoke-WebRequest -Uri $exeUrl -OutFile $exePath -ErrorAction Stop
-
-    # Ensure the file exists before attempting installation
-    if (Test-Path -Path $exePath) {
-        # Install the EXE installer silently if possible
-        Start-Process -FilePath $exePath -ArgumentList "/S" -Wait -NoNewWindow
-    } else {
-        Log-Error "The EXE file was not downloaded successfully."
-    }
-} catch {
-    Log-Error "Failed to download or install Everything: $_"
-}
-
-# Download and install Listary
-try {
-    $listaryUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/Listary.exe"
-    $listaryPath = "$env:temp\Listary.exe"
-
-    # Download the EXE installer
-    Invoke-WebRequest -Uri $listaryUrl -OutFile $listaryPath -ErrorAction Stop
-
-    # Ensure the file exists before attempting installation
-    if (Test-Path -Path $listaryPath) {
-        # Install the EXE installer silently if possible
-        Start-Process -FilePath $listaryPath -ArgumentList "/S" -Wait -NoNewWindow
-    } else {
-        Log-Error "The EXE file was not downloaded successfully."
-    }
-} catch {
-    Log-Error "Failed to download or install Listary: $_"
+    Log-Error "Failed to reset Windows Search: $_"
 }
 
 # Add ctfmon.exe to startup
