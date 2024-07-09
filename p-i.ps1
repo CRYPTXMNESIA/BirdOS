@@ -127,37 +127,30 @@ try {
     Log-Error "Failed to download or install Everything: $_"
 }
 
+# Download and install Listary
+try {
+    $listaryUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/Listary.exe"
+    $listaryPath = "$env:temp\Listary.exe"
+
+    # Download the EXE installer
+    Invoke-WebRequest -Uri $listaryUrl -OutFile $listaryPath -ErrorAction Stop
+
+    # Ensure the file exists before attempting installation
+    if (Test-Path -Path $listaryPath) {
+        # Install the EXE installer silently if possible
+        Start-Process -FilePath $listaryPath -ArgumentList "/S" -Wait -NoNewWindow
+    } else {
+        Log-Error "The EXE file was not downloaded successfully."
+    }
+} catch {
+    Log-Error "Failed to download or install Listary: $_"
+}
+
 # Add ctfmon.exe to startup
 try {
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
 } catch {
     Log-Error "Failed to add ctfmon.exe to startup: $_"
-}
-
-# Download and install EverythingToolbar
-try {
-    $msiUrl = "https://github.com/CRYPTXMNESIA/BirdOS/raw/main/EverythingToolbar.msi"
-    $msiPath = "$env:temp\EverythingToolbar.msi"
-
-    # Download the MSI installer
-    Invoke-WebRequest -Uri $msiUrl -OutFile $msiPath -ErrorAction Stop
-
-    # Ensure the file exists before attempting installation
-    if (Test-Path -Path $msiPath) {
-        # Install the MSI installer silently
-        Start-Process msiexec.exe -ArgumentList "/i `"$msiPath`" /quiet /norestart" -Wait -NoNewWindow
-
-        # Verify installation before deleting the file
-        if (Get-Process -Name EverythingToolbar -ErrorAction SilentlyContinue) {
-            Remove-Item -Path $msiPath -Force
-        } else {
-            Log-Error "EverythingToolbar installation verification failed."
-        }
-    } else {
-        Log-Error "The MSI file was not downloaded successfully."
-    }
-} catch {
-    Log-Error "Failed to download or install EverythingToolbar: $_"
 }
 
 # Notify completion
