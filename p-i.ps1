@@ -37,39 +37,57 @@ function Reset-WindowsSearch {
     Write-Output "Windows Search reset completed."
 }
 
+# Function to find and kill the process locking the file
+function Get-LockingProcess {
+    param (
+        [string]$filePath
+    )
+
+    # Find the process locking the file
+    try {
+        $lockingProcess = Get-Process | Where-Object {
+            $_.Modules -ErrorAction SilentlyContinue | Where-Object { $_.FileName -eq $filePath }
+        }
+        return $lockingProcess
+    } catch {
+        Log-Error "Error finding the process locking ${filePath}: $_"
+        return $null
+    }
+}
+
 # Function to kill the process using the file and delete the file
 function Delete-WebCacheFile {
     param (
         [string]$filePath
     )
 
-    # Get the process locking the file
-    try {
-        $lockingProcess = Get-Process | Where-Object {
-            $_.Modules | Where-Object { $_.FileName -eq $filePath }
-        }
-    } catch {
-        Log-Error "Error finding the process locking ${filePath}: $_"
-        return
-    }
+    $attempt = 0
+    $maxAttempts = 3
 
-    # Kill the process if found
-    if ($lockingProcess) {
+    while ((Test-Path -Path $filePath) -and ($attempt -lt $maxAttempts)) {
+        $attempt++
+        # Get the process locking the file
+        $lockingProcess = Get-LockingProcess -filePath $filePath
+
+        # Kill the process if found
+        if ($lockingProcess) {
+            try {
+                Stop-Process -Id $lockingProcess.Id -Force
+                Write-Output "Killed process $($lockingProcess.Name) with ID $($lockingProcess.Id) that was locking ${filePath}"
+            } catch {
+                Log-Error "Failed to kill process $($lockingProcess.Name) with ID $($lockingProcess.Id): $_"
+                return
+            }
+        }
+
+        # Attempt to delete the file
         try {
-            Stop-Process -Id $lockingProcess.Id -Force
-            Write-Output "Killed process $($lockingProcess.Name) with ID $($lockingProcess.Id) that was locking ${filePath}"
+            Remove-Item -Path $filePath -Force
+            Write-Output "Deleted file ${filePath}"
         } catch {
-            Log-Error "Failed to kill process $($lockingProcess.Name) with ID $($lockingProcess.Id): $_"
-            return
+            Log-Error "Failed to delete file ${filePath}: $_"
+            Start-Sleep -Seconds 5
         }
-    }
-
-    # Attempt to delete the file
-    try {
-        Remove-Item -Path $filePath -Force
-        Write-Output "Deleted file ${filePath}"
-    } catch {
-        Log-Error "Failed to delete file ${filePath}: $_"
     }
 }
 
