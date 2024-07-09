@@ -143,14 +143,6 @@ try {
     Log-Error "Failed to reset Windows Search: $_"
 }
 
-# Delete WebCacheV01.dat
-try {
-    $webCacheFilePath = "C:\Users\$env:USERNAME\AppData\Local\Microsoft\Windows\WebCache\WebCacheV01.dat"
-    Delete-WebCacheFile -filePath $webCacheFilePath
-} catch {
-    Log-Error "Failed to delete WebCacheV01.dat: $_"
-}
-
 # Add ctfmon.exe to startup
 try {
     Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
