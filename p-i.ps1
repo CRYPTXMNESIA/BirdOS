@@ -45,7 +45,7 @@ public static extern int SystemParametersInfo(int uAction, int uParam, string lp
     RUNDLL32.EXE user32.dll,UpdatePerUserSystemParameters
 
     # Set lock screen wallpaper using registry
-    $regKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    $regKey = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CurrentVersion\Personalization'
     if (!(Test-Path -Path $regKey)) {
         New-Item -Path $regKey -Force
     }
