@@ -158,4 +158,6 @@ try {
 Add-Type -AssemblyName PresentationFramework
 [System.Windows.MessageBox]::Show("BirdOS Post-Install was successful.", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
 
+Restart-Computer -Force
+
 exit
