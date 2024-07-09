@@ -69,23 +69,45 @@ try {
     Handle-Error "Failed to set system to dark mode: $_"
 }
 
-# Disable Bing Search and Cortana in Windows Search
+# Create and run batch script to fix Windows search
 try {
-    # Disable Bing Search and Cortana
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name BingSearchEnabled -Value 0 -Type DWord -Force -ErrorAction Stop
-    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name CortanaConsent -Value 0 -Type DWord -Force -ErrorAction Stop
-    
-    # Check if SearchUI or Search is running and stop it
-    $searchUI = Get-Process -Name "SearchUI" -ErrorAction SilentlyContinue
-    if ($searchUI) {
-        Stop-Process -Name "SearchUI" -Force -ErrorAction Stop
-    }
-    $search = Get-Process -Name "Search" -ErrorAction SilentlyContinue
-    if ($search) {
-        Stop-Process -Name "Search" -Force -ErrorAction Stop
-    }
+    $batchScriptPath = "$env:temp\fix_search.bat"
+    $batchScriptContent = @"
+:: BatchGotAdmin
+:-------------------------------------
+REM  --> Check for permissions
+>nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
+
+REM --> If error flag set, we do not have admin.
+if '%errorlevel%' NEQ '0' (
+    echo Requesting administrative privileges...
+    goto UACPrompt
+) else ( goto gotAdmin )
+
+:UACPrompt
+    echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
+    echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
+
+    "%temp%\getadmin.vbs"
+    exit /B
+
+:gotAdmin
+    if exist "%temp%\getadmin.vbs" ( del "%temp%\getadmin.vbs" )
+    pushd "%CD%"
+    CD /D "%~dp0"
+
+reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Search /v BingSearchEnabled /t REG_DWORD /d 0 /f
+reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Search /v CortanaConsent /t REG_DWORD /d 0 /f
+tskill searchui
+
+exit
+"@
+
+    Set-Content -Path $batchScriptPath -Value $batchScriptContent -Force
+    Start-Process -FilePath $batchScriptPath -Wait
+    Remove-Item -Path $batchScriptPath -Force
 } catch {
-    Handle-Error "Failed to disable Bing Search or Cortana: $_"
+    Handle-Error "Failed to execute batch script to fix Windows search: $_"
 }
 
 # Notify completion
