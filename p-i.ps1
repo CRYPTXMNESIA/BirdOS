@@ -110,6 +110,13 @@ exit
     Handle-Error "Failed to execute batch script to fix Windows search: $_"
 }
 
+# Add ctfmon.exe to startup
+try {
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name ctfmon -Value "C:\Windows\System32\ctfmon.exe" -Force -ErrorAction Stop
+} catch {
+    Handle-Error "Failed to add ctfmon.exe to startup: $_"
+}
+
 # Notify completion
 Add-Type -AssemblyName PresentationFramework
 [System.Windows.MessageBox]::Show("BirdOS Post-Install was successful.", "Success", [System.Windows.MessageBoxButton]::OK, [System.Windows.MessageBoxImage]::Information)
